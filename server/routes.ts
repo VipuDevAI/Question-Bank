@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import multer from "multer";
 import mammoth from "mammoth";
 import PDFDocument from "pdfkit";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Header, Footer, PageBreak, BorderStyle } from "docx";
+import type { Attempt } from "@shared/schema";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -578,7 +580,17 @@ export async function registerRoutes(
   app.get("/api/analytics", async (req, res) => {
     try {
       const tenantId = req.query.tenantId as string || "tenant-demo";
-      const analytics = await storage.getAnalytics(tenantId);
+      const timeRange = req.query.timeRange as string || "all";
+      
+      let daysBack = 0;
+      switch (timeRange) {
+        case "7d": daysBack = 7; break;
+        case "30d": daysBack = 30; break;
+        case "90d": daysBack = 90; break;
+        default: daysBack = 0;
+      }
+      
+      const analytics = await storage.getAnalytics(tenantId, daysBack);
       res.json(analytics);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -921,6 +933,12 @@ export async function registerRoutes(
     }
   });
 
+  // Register additional route modules
+  registerBlueprintRoutes(app);
+  registerActivityLogRoutes(app);
+  registerWorkflowRoutes(app);
+  registerPaperGenerationRoutes(app);
+
   return httpServer;
 }
 
@@ -1061,6 +1079,1071 @@ function parseCSVQuestions(csvContent: string, subject: string, chapter: string,
   }
 
   return questions;
+}
+
+// ========================
+// BLUEPRINT ROUTES
+// ========================
+export function registerBlueprintRoutes(app: Express) {
+  app.get("/api/blueprints", async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId as string || "tenant-demo";
+      const blueprints = await storage.getBlueprintsByTenant(tenantId);
+      res.json(blueprints);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/blueprints/:id", async (req, res) => {
+    try {
+      const blueprint = await storage.getBlueprint(req.params.id);
+      if (!blueprint) {
+        return res.status(404).json({ error: "Blueprint not found" });
+      }
+      res.json(blueprint);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/blueprints", async (req, res) => {
+    try {
+      const blueprint = await storage.createBlueprint({
+        ...req.body,
+        tenantId: req.body.tenantId || "tenant-demo",
+      });
+      res.json(blueprint);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/blueprints/:id", async (req, res) => {
+    try {
+      const blueprint = await storage.updateBlueprint(req.params.id, req.body);
+      if (!blueprint) {
+        return res.status(404).json({ error: "Blueprint not found" });
+      }
+      res.json(blueprint);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/blueprints/:id/approve", async (req, res) => {
+    try {
+      const { approvedBy } = req.body;
+      const blueprint = await storage.approveBlueprint(req.params.id, approvedBy);
+      if (!blueprint) {
+        return res.status(404).json({ error: "Blueprint not found" });
+      }
+      res.json(blueprint);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+}
+
+// ========================
+// ACTIVITY LOG ROUTES
+// ========================
+export function registerActivityLogRoutes(app: Express) {
+  app.get("/api/activity-logs", async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId as string || "tenant-demo";
+      const entityType = req.query.entityType as string | undefined;
+      const entityId = req.query.entityId as string | undefined;
+      const logs = await storage.getActivityLogs(tenantId, entityType, entityId);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/activity-logs", async (req, res) => {
+    try {
+      const log = await storage.logActivity({
+        ...req.body,
+        tenantId: req.body.tenantId || "tenant-demo",
+      });
+      res.json(log);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+}
+
+// ========================
+// WORKFLOW ROUTES
+// ========================
+export function registerWorkflowRoutes(app: Express) {
+  app.get("/api/tests/workflow/:state", async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId as string || "tenant-demo";
+      const states = req.params.state.split(",") as any[];
+      const tests = await storage.getTestsByWorkflowState(tenantId, states);
+      res.json(tests);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/questions/pending", async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId as string || "tenant-demo";
+      const questions = await storage.getPendingQuestions(tenantId);
+      res.json(questions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tests/:id/workflow", async (req, res) => {
+    try {
+      const { state, userId, comments } = req.body;
+      const test = await storage.updateTestWorkflow(req.params.id, state, userId, comments);
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+      res.json(test);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tests/:id/submit-to-hod", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      const test = await storage.updateTestWorkflow(req.params.id, "pending_hod", userId, "Submitted for HOD review");
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+      res.json(test);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tests/:id/hod-approve", async (req, res) => {
+    try {
+      const { userId, comments } = req.body;
+      const test = await storage.updateTestWorkflow(req.params.id, "hod_approved", userId, comments);
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+      res.json(test);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tests/:id/hod-reject", async (req, res) => {
+    try {
+      const { userId, comments } = req.body;
+      if (!comments) {
+        return res.status(400).json({ error: "Rejection comments are required" });
+      }
+      const test = await storage.updateTestWorkflow(req.params.id, "hod_rejected", userId, comments);
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+      res.json(test);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tests/:id/submit-to-principal", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      const test = await storage.updateTestWorkflow(req.params.id, "pending_principal", userId, "Submitted for Principal approval");
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+      res.json(test);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tests/:id/principal-approve", async (req, res) => {
+    try {
+      const { userId, comments } = req.body;
+      const test = await storage.updateTestWorkflow(req.params.id, "principal_approved", userId, comments);
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+      res.json(test);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tests/:id/principal-reject", async (req, res) => {
+    try {
+      const { userId, comments } = req.body;
+      if (!comments) {
+        return res.status(400).json({ error: "Rejection comments are required" });
+      }
+      const test = await storage.updateTestWorkflow(req.params.id, "principal_rejected", userId, comments);
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+      res.json(test);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tests/:id/send-to-committee", async (req, res) => {
+    try {
+      const test = await storage.sendTestToCommittee(req.params.id);
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+      res.json(test);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tests/:id/lock", async (req, res) => {
+    try {
+      const test = await storage.lockTest(req.params.id);
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+      res.json(test);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tests/:id/mark-confidential", async (req, res) => {
+    try {
+      const test = await storage.markTestConfidential(req.params.id);
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+      res.json(test);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tests/:id/printing-ready", async (req, res) => {
+    try {
+      const test = await storage.markPrintingReady(req.params.id);
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+      res.json(test);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/questions/:id/hod-approve", async (req, res) => {
+    try {
+      const { reviewerId, comments } = req.body;
+      const question = await storage.approveQuestionByHOD(req.params.id, reviewerId, comments);
+      if (!question) {
+        return res.status(404).json({ error: "Question not found" });
+      }
+      res.json(question);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/questions/:id/hod-reject", async (req, res) => {
+    try {
+      const { reviewerId, comments } = req.body;
+      if (!comments) {
+        return res.status(400).json({ error: "Rejection comments are required" });
+      }
+      const question = await storage.rejectQuestionByHOD(req.params.id, reviewerId, comments);
+      if (!question) {
+        return res.status(404).json({ error: "Question not found" });
+      }
+      res.json(question);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+}
+
+// ========================
+// QUESTION PAPER GENERATION ROUTES
+// ========================
+export function registerPaperGenerationRoutes(app: Express) {
+  app.post("/api/tests/:id/generate-paper", async (req, res) => {
+    try {
+      const { format } = req.body;
+      const result = await storage.generateQuestionPaper(req.params.id, format || "A4");
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tests/:id/paper-pdf", async (req, res) => {
+    try {
+      const test = await storage.getTest(req.params.id);
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+
+      const questions = [];
+      for (const qId of test.questionIds || []) {
+        const q = await storage.getQuestion(qId);
+        if (q) questions.push(q);
+      }
+
+      const doc = new PDFDocument({ size: req.query.format === "Legal" ? "LEGAL" : "A4", margin: 50 });
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${test.title.replace(/[^a-zA-Z0-9]/g, '_')}_paper.pdf"`);
+      doc.pipe(res);
+
+      doc.fontSize(16).font("Helvetica-Bold").text("Question Bank", { align: "center" });
+      doc.moveDown(0.5);
+      doc.fontSize(14).text(test.title, { align: "center" });
+      doc.moveDown(0.3);
+      doc.fontSize(10).font("Helvetica").text(`Subject: ${test.subject} | Grade: ${test.grade} | Total Marks: ${test.totalMarks} | Duration: ${test.duration} min`, { align: "center" });
+      doc.moveDown();
+      doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
+      doc.moveDown();
+
+      doc.fontSize(11).text("Instructions:", { underline: true });
+      doc.fontSize(10).text("1. Read all questions carefully before answering.");
+      doc.text("2. Answers must be written neatly.");
+      doc.text("3. No electronic devices allowed.");
+      doc.moveDown();
+
+      let questionNum = 1;
+      for (const q of questions) {
+        doc.fontSize(11).font("Helvetica-Bold").text(`Q${questionNum}. ${q.content}`, { continued: false });
+        doc.font("Helvetica").fontSize(9).text(`[${q.marks} mark(s)] - ${q.difficulty}`, { align: "right" });
+        
+        if (q.type === "mcq" && q.options) {
+          const opts = q.options as string[];
+          opts.forEach((opt, i) => {
+            doc.fontSize(10).text(`   ${String.fromCharCode(65 + i)}) ${opt}`);
+          });
+        }
+        doc.moveDown();
+        questionNum++;
+      }
+
+      doc.moveDown(2);
+      doc.fontSize(8).text("--- End of Question Paper ---", { align: "center" });
+      doc.moveDown();
+      doc.text("Powered by SmartGenEduX 2025", { align: "center" });
+
+      doc.end();
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tests/:id/answer-key-pdf", async (req, res) => {
+    try {
+      const test = await storage.getTest(req.params.id);
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+
+      const questions = [];
+      for (const qId of test.questionIds || []) {
+        const q = await storage.getQuestion(qId);
+        if (q) questions.push(q);
+      }
+
+      const doc = new PDFDocument({ size: "A4", margin: 50 });
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${test.title.replace(/[^a-zA-Z0-9]/g, '_')}_answer_key.pdf"`);
+      doc.pipe(res);
+
+      doc.fontSize(16).font("Helvetica-Bold").text("ANSWER KEY - CONFIDENTIAL", { align: "center" });
+      doc.moveDown(0.5);
+      doc.fontSize(14).text(test.title, { align: "center" });
+      doc.moveDown(0.3);
+      doc.fontSize(10).font("Helvetica").text(`Subject: ${test.subject} | Grade: ${test.grade}`, { align: "center" });
+      doc.moveDown();
+      doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
+      doc.moveDown();
+
+      let questionNum = 1;
+      for (const q of questions) {
+        doc.fontSize(10).font("Helvetica-Bold").text(`Q${questionNum}. `, { continued: true });
+        doc.font("Helvetica").text(q.content.substring(0, 80) + (q.content.length > 80 ? "..." : ""));
+        doc.fontSize(11).fillColor("green").text(`   Answer: ${q.correctAnswer || "N/A"}`);
+        if (q.explanation) {
+          doc.fontSize(9).fillColor("gray").text(`   Explanation: ${q.explanation}`);
+        }
+        doc.fillColor("black").moveDown(0.5);
+        questionNum++;
+      }
+
+      doc.moveDown(2);
+      doc.fontSize(8).text("--- End of Answer Key ---", { align: "center" });
+      doc.moveDown();
+      doc.text("CONFIDENTIAL - For Examiner Use Only", { align: "center" });
+      doc.text("Powered by SmartGenEduX 2025", { align: "center" });
+
+      doc.end();
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ DOCX Export Routes ============
+  app.get("/api/tests/:id/paper-docx", async (req, res) => {
+    try {
+      const test = await storage.getTest(req.params.id);
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+
+      const tenant = await storage.getTenant(test.tenantId);
+      const questions = [];
+      for (const qId of test.questionIds || []) {
+        const q = await storage.getQuestion(qId);
+        if (q) questions.push(q);
+      }
+
+      const schoolName = tenant?.name || "Question Bank";
+      const schoolAddress = (tenant as any)?.address || "";
+
+      const docChildren: any[] = [
+        new Paragraph({
+          text: schoolName,
+          heading: HeadingLevel.HEADING_1,
+          alignment: AlignmentType.CENTER,
+        }),
+        new Paragraph({
+          text: schoolAddress,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 200 },
+        }),
+        new Paragraph({
+          text: test.title,
+          heading: HeadingLevel.HEADING_2,
+          alignment: AlignmentType.CENTER,
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: `Subject: ${test.subject} | Grade: ${test.grade} | Total Marks: ${test.totalMarks} | Duration: ${test.duration} min`, size: 22 }),
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 },
+        }),
+        new Paragraph({
+          children: [new TextRun({ text: "Instructions:", bold: true })],
+          spacing: { before: 200, after: 100 },
+        }),
+        new Paragraph({ text: "1. Read all questions carefully before answering." }),
+        new Paragraph({ text: "2. Answers must be written neatly." }),
+        new Paragraph({ text: "3. No electronic devices allowed." }),
+        new Paragraph({ text: "", spacing: { after: 300 } }),
+      ];
+
+      let questionNum = 1;
+      for (const q of questions) {
+        docChildren.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: `Q${questionNum}. ${q.content}`, bold: true }),
+              new TextRun({ text: `  [${q.marks} mark(s)]`, italics: true }),
+            ],
+            spacing: { before: 200, after: 100 },
+          })
+        );
+
+        if (q.type === "mcq" && q.options) {
+          const opts = q.options as string[];
+          opts.forEach((opt, i) => {
+            docChildren.push(
+              new Paragraph({ text: `   ${String.fromCharCode(65 + i)}) ${opt}` })
+            );
+          });
+        }
+
+        docChildren.push(new Paragraph({ text: "", spacing: { after: 150 } }));
+        questionNum++;
+      }
+
+      docChildren.push(
+        new Paragraph({
+          text: "--- End of Question Paper ---",
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 400 },
+        }),
+        new Paragraph({
+          text: "Powered by SmartGenEduX 2025",
+          alignment: AlignmentType.CENTER,
+        })
+      );
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          headers: {
+            default: new Header({
+              children: [new Paragraph({ text: schoolName, alignment: AlignmentType.CENTER })],
+            }),
+          },
+          footers: {
+            default: new Footer({
+              children: [new Paragraph({ text: "Powered by SmartGenEduX 2025", alignment: AlignmentType.CENTER })],
+            }),
+          },
+          children: docChildren,
+        }],
+      });
+
+      const buffer = await Packer.toBuffer(doc);
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename="${test.title.replace(/[^a-zA-Z0-9]/g, '_')}_paper.docx"`);
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tests/:id/answer-key-docx", async (req, res) => {
+    try {
+      const test = await storage.getTest(req.params.id);
+      if (!test) {
+        return res.status(404).json({ error: "Test not found" });
+      }
+
+      const tenant = await storage.getTenant(test.tenantId);
+      const questions = [];
+      for (const qId of test.questionIds || []) {
+        const q = await storage.getQuestion(qId);
+        if (q) questions.push(q);
+      }
+
+      const schoolName = tenant?.name || "Question Bank";
+
+      const docChildren: any[] = [
+        new Paragraph({
+          text: "ANSWER KEY - CONFIDENTIAL",
+          heading: HeadingLevel.HEADING_1,
+          alignment: AlignmentType.CENTER,
+        }),
+        new Paragraph({
+          text: test.title,
+          heading: HeadingLevel.HEADING_2,
+          alignment: AlignmentType.CENTER,
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: `Subject: ${test.subject} | Grade: ${test.grade}`, size: 22 }),
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 },
+        }),
+      ];
+
+      let questionNum = 1;
+      for (const q of questions) {
+        docChildren.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: `Q${questionNum}. `, bold: true }),
+              new TextRun({ text: q.content.substring(0, 100) + (q.content.length > 100 ? "..." : "") }),
+            ],
+            spacing: { before: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: `   Answer: ${q.correctAnswer || "N/A"}`, bold: true, color: "228B22" }),
+            ],
+          })
+        );
+
+        if (q.explanation) {
+          docChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `   Explanation: ${q.explanation}`, italics: true, color: "666666" }),
+              ],
+            })
+          );
+        }
+        questionNum++;
+      }
+
+      docChildren.push(
+        new Paragraph({
+          text: "--- End of Answer Key ---",
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 400 },
+        }),
+        new Paragraph({
+          text: "CONFIDENTIAL - For Examiner Use Only",
+          alignment: AlignmentType.CENTER,
+        })
+      );
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          headers: {
+            default: new Header({
+              children: [new Paragraph({ text: `${schoolName} - CONFIDENTIAL`, alignment: AlignmentType.CENTER })],
+            }),
+          },
+          footers: {
+            default: new Footer({
+              children: [new Paragraph({ text: "Powered by SmartGenEduX 2025", alignment: AlignmentType.CENTER })],
+            }),
+          },
+          children: docChildren,
+        }],
+      });
+
+      const buffer = await Packer.toBuffer(doc);
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename="${test.title.replace(/[^a-zA-Z0-9]/g, '_')}_answer_key.docx"`);
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ CSV Export Routes ============
+  app.get("/api/export/analytics-csv", async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId as string || "tenant-demo";
+      const attempts = await storage.getAllAttempts(tenantId);
+      const users = await storage.getUsersByTenant(tenantId);
+      const tests = await storage.getTestsByTenant(tenantId);
+
+      const userMap = new Map(users.map(u => [u.id, u]));
+      const testMap = new Map(tests.map(t => [t.id, t]));
+
+      let csv = "Student Name,Student Email,Class,Section,Test Title,Subject,Score,Total Marks,Percentage,Date Completed\n";
+
+      for (const attempt of attempts) {
+        const student = userMap.get(attempt.studentId) as any;
+        const test = testMap.get(attempt.testId);
+        const att = attempt as any;
+        if (student && test && att.completedAt) {
+          const totalMarks = test.totalMarks || 0;
+          const percentage = totalMarks > 0 ? ((attempt.score || 0) / totalMarks * 100).toFixed(1) : "0";
+          csv += `"${student.name}","${student.email}","${student.classId || ''}","${student.section || ''}","${test.title}","${test.subject}","${attempt.score || 0}","${totalMarks}","${percentage}%","${new Date(att.completedAt).toLocaleDateString()}"\n`;
+        }
+      }
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", "attachment; filename=analytics_report.csv");
+      res.send(csv);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/export/class-results-csv", async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId as string || "tenant-demo";
+      const classId = req.query.classId as string;
+      const attempts = await storage.getAllAttempts(tenantId);
+      const users = await storage.getUsersByTenant(tenantId);
+      const tests = await storage.getTestsByTenant(tenantId);
+
+      const students = users.filter(u => u.role === "student" && (!classId || (u as any).classId === classId));
+      const studentIds = new Set(students.map(s => s.id));
+      const relevantAttempts = attempts.filter((a: Attempt) => studentIds.has(a.studentId));
+
+      const testMap = new Map(tests.map(t => [t.id, t]));
+      const studentMap = new Map(students.map(s => [s.id, s]));
+
+      let csv = "Class,Section,Student Name,Email,Tests Taken,Average Score,Total Marks Earned\n";
+
+      const studentStats = new Map<string, { tests: number; totalScore: number; totalMarks: number }>();
+
+      for (const attempt of relevantAttempts) {
+        const test = testMap.get(attempt.testId);
+        const att = attempt as any;
+        if (test && att.completedAt) {
+          const stats = studentStats.get(attempt.studentId) || { tests: 0, totalScore: 0, totalMarks: 0 };
+          stats.tests++;
+          stats.totalScore += attempt.score || 0;
+          stats.totalMarks += test.totalMarks || 0;
+          studentStats.set(attempt.studentId, stats);
+        }
+      }
+
+      for (const student of students) {
+        const s = student as any;
+        const stats = studentStats.get(student.id) || { tests: 0, totalScore: 0, totalMarks: 0 };
+        const avgScore = stats.tests > 0 ? (stats.totalScore / stats.totalMarks * 100).toFixed(1) : "0";
+        csv += `"${s.classId || ''}","${s.section || ''}","${student.name}","${student.email}","${stats.tests}","${avgScore}%","${stats.totalScore}"\n`;
+      }
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", "attachment; filename=class_results.csv");
+      res.send(csv);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Tab Switch / Focus Warning Log ============
+  app.post("/api/exam/log-tab-switch", async (req, res) => {
+    try {
+      const { attemptId, studentId, tenantId } = req.body;
+      
+      await storage.logActivity({
+        tenantId: tenantId || "tenant-demo",
+        userId: studentId,
+        entityType: "attempt",
+        action: "tab_switch_detected",
+        entityId: attemptId,
+      });
+
+      const existingAlerts = await storage.getRiskAlertsByTenant(tenantId || "tenant-demo");
+      const studentSwitches = existingAlerts.filter(a => 
+        a.studentId === studentId && 
+        a.type === "tab_switch" &&
+        new Date(a.createdAt).getTime() > Date.now() - 3600000
+      );
+
+      if (studentSwitches.length >= 2) {
+        await storage.createRiskAlert({
+          id: `risk-${Date.now()}`,
+          tenantId: tenantId || "tenant-demo",
+          studentId,
+          type: "multiple_tab_switches",
+          severity: "high",
+          message: "Multiple tab switches detected during exam - potential cheating",
+          resolved: false,
+          createdAt: new Date(),
+        });
+      } else {
+        await storage.createRiskAlert({
+          id: `risk-${Date.now()}`,
+          tenantId: tenantId || "tenant-demo",
+          studentId,
+          type: "tab_switch",
+          severity: "medium",
+          message: "Tab switch detected during exam",
+          resolved: false,
+          createdAt: new Date(),
+        });
+      }
+
+      res.json({ success: true, warning: "Tab switch logged" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Blueprint Routes ============
+  app.get("/api/blueprints", async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId as string || "tenant-demo";
+      const blueprints = await storage.getBlueprintsByTenant(tenantId);
+      res.json(blueprints);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/blueprints", async (req, res) => {
+    try {
+      const { totalMarks, sections, ...rest } = req.body;
+      const duration = totalMarks === 40 ? 90 : totalMarks === 80 ? 180 : 120;
+      const blueprint = await storage.createBlueprint({
+        ...rest,
+        totalMarks,
+        sections,
+        duration,
+        tenantId: req.body.tenantId || "tenant-demo",
+      });
+      res.json(blueprint);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/blueprints/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteBlueprint(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Blueprint not found" });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Bulk User Upload ============
+  app.post("/api/users/bulk", async (req, res) => {
+    try {
+      const { users } = req.body;
+      if (!Array.isArray(users) || users.length === 0) {
+        return res.status(400).json({ error: "No users provided" });
+      }
+      let created = 0;
+      const errors: any[] = [];
+      for (const userData of users) {
+        try {
+          await storage.createUser({
+            ...userData,
+            active: true,
+          });
+          created++;
+        } catch (err: any) {
+          errors.push({ user: userData.username, error: err.message });
+        }
+      }
+      res.json({ created, errors, total: users.length });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Portions Routes ============
+  app.patch("/api/chapters/:id/portions", async (req, res) => {
+    try {
+      const { completedTopics } = req.body;
+      const chapter = await storage.updateChapterPortions(req.params.id, completedTopics);
+      if (!chapter) {
+        return res.status(404).json({ error: "Chapter not found" });
+      }
+      res.json(chapter);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Subjects Routes ============
+  app.get("/api/subjects", async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId as string || "tenant-demo";
+      const subjects = await storage.getSubjectsByTenant(tenantId);
+      res.json(subjects);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Students Routes ============
+  app.get("/api/students", async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId as string || "tenant-demo";
+      const students = await storage.getStudentsByTenant(tenantId);
+      res.json(students);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Makeup Tests Routes ============
+  app.get("/api/makeup-tests", async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId as string || "tenant-demo";
+      const makeupTests = await storage.getMakeupTestsByTenant(tenantId);
+      res.json(makeupTests);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/makeup-tests", async (req, res) => {
+    try {
+      const makeupTest = await storage.createMakeupTest({
+        ...req.body,
+        tenantId: req.body.tenantId || "tenant-demo",
+      });
+      res.json(makeupTest);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Submissions Routes ============
+  app.get("/api/submissions", async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId as string || "tenant-demo";
+      const submissions = await storage.getSubmissionsByTenant(tenantId);
+      res.json(submissions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/submissions/:id/marks", async (req, res) => {
+    try {
+      const { marks, feedback } = req.body;
+      const submission = await storage.updateSubmissionMarks(req.params.id, marks, feedback);
+      if (!submission) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+      res.json(submission);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/submissions/:id/complete", async (req, res) => {
+    try {
+      const submission = await storage.completeSubmissionMarking(req.params.id);
+      if (!submission) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+      res.json(submission);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Results Routes ============
+  app.get("/api/results", async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId as string || "tenant-demo";
+      const userId = req.query.userId as string;
+      const results = await storage.getResultsByUser(tenantId, userId);
+      res.json(results);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Parent Routes ============
+  app.get("/api/parent/children", async (req, res) => {
+    try {
+      const parentId = req.query.parentId as string;
+      const children = await storage.getChildrenByParent(parentId);
+      res.json(children);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/parent/results", async (req, res) => {
+    try {
+      const parentId = req.query.parentId as string;
+      const results = await storage.getResultsByParent(parentId);
+      res.json(results);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/parent/progress", async (req, res) => {
+    try {
+      const parentId = req.query.parentId as string;
+      const progress = await storage.getProgressByParent(parentId);
+      res.json(progress);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/parent/notifications", async (req, res) => {
+    try {
+      const parentId = req.query.parentId as string;
+      const notifications = await storage.getNotificationsByParent(parentId);
+      res.json(notifications);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/parent/activity-timeline", async (req, res) => {
+    try {
+      const parentId = req.query.parentId as string;
+      if (!parentId) {
+        return res.json([]);
+      }
+      
+      const children = await storage.getChildrenByParent(parentId);
+      if (!children || children.length === 0) {
+        return res.json([]);
+      }
+      
+      const activities: any[] = [];
+      
+      const attemptPromises = children.map(async (child: any) => {
+        try {
+          const attempts = await storage.getAttemptsByStudent(child.id);
+          return { child, attempts: attempts || [] };
+        } catch {
+          return { child, attempts: [] };
+        }
+      });
+      
+      const childAttempts = await Promise.all(attemptPromises);
+      
+      for (const { child, attempts } of childAttempts) {
+        for (const attempt of attempts) {
+          try {
+            const test = await storage.getTest(attempt.testId);
+            const att = attempt as any;
+            if (test && att.completedAt) {
+              activities.push({
+                id: `activity-${attempt.id}`,
+                type: "test_completed",
+                title: `Completed: ${test.title}`,
+                description: `${child?.name || 'Student'} scored ${attempt.score || 0}/${test.totalMarks || 0} in ${test.subject}`,
+                timestamp: att.completedAt,
+                icon: "award",
+                childName: child?.name || 'Student',
+              });
+            } else if (test && att.startedAt) {
+              activities.push({
+                id: `activity-start-${attempt.id}`,
+                type: "test_started",
+                title: `Started: ${test.title}`,
+                description: `${child?.name || 'Student'} started ${test.subject} test`,
+                timestamp: att.startedAt,
+                icon: "play",
+                childName: child?.name || 'Student',
+              });
+            }
+          } catch {
+            continue;
+          }
+        }
+      }
+      
+      activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      res.json(activities.slice(0, 20));
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Risk Alerts Routes ============
+  app.get("/api/risk-alerts", async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId as string || "tenant-demo";
+      const alerts = await storage.getRiskAlertsByTenant(tenantId);
+      res.json(alerts);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/risk-alerts/:id/acknowledge", async (req, res) => {
+    try {
+      const alert = await storage.acknowledgeRiskAlert(req.params.id);
+      if (!alert) {
+        return res.status(404).json({ error: "Alert not found" });
+      }
+      res.json(alert);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 }
 
 function parseCSVContent(csvContent: string): string[][] {

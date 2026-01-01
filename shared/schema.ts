@@ -16,8 +16,8 @@ export const insertTenantSchema = createInsertSchema(tenants).omit({ id: true })
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type Tenant = typeof tenants.$inferSelect;
 
-// User roles
-export const userRoles = ["super_admin", "admin", "teacher", "student", "parent"] as const;
+// User roles - Updated with HOD, Principal, Examination Committee
+export const userRoles = ["super_admin", "admin", "hod", "principal", "exam_committee", "teacher", "student", "parent"] as const;
 export type UserRole = typeof userRoles[number];
 
 // Users
@@ -143,6 +143,21 @@ export type Chapter = typeof chapters.$inferSelect;
 export const testTypes = ["unit_test", "review_test", "quarterly", "half_yearly", "revision", "preparatory", "annual", "mock"] as const;
 export type TestType = typeof testTypes[number];
 
+// Workflow states for approval pipeline
+export const workflowStates = [
+  "draft",
+  "submitted",
+  "pending_hod",
+  "hod_approved",
+  "hod_rejected",
+  "pending_principal",
+  "principal_approved",
+  "principal_rejected",
+  "sent_to_committee",
+  "locked"
+] as const;
+export type WorkflowState = typeof workflowStates[number];
+
 export const tests = pgTable("tests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull(),
@@ -150,6 +165,7 @@ export const tests = pgTable("tests", {
   type: text("type").$type<TestType>().notNull(),
   subject: text("subject").notNull(),
   grade: text("grade").notNull(),
+  section: text("section"),
   chapterId: varchar("chapter_id"),
   duration: integer("duration").default(60),
   totalMarks: integer("total_marks").default(100),
@@ -158,11 +174,26 @@ export const tests = pgTable("tests", {
   isActive: boolean("is_active").default(false),
   resultsRevealed: boolean("results_revealed").default(false),
   createdBy: varchar("created_by"),
+  blueprintId: varchar("blueprint_id"),
+  workflowState: text("workflow_state").$type<WorkflowState>().default("draft"),
+  hodApprovedBy: varchar("hod_approved_by"),
+  hodApprovedAt: timestamp("hod_approved_at"),
+  hodComments: text("hod_comments"),
+  principalApprovedBy: varchar("principal_approved_by"),
+  principalApprovedAt: timestamp("principal_approved_at"),
+  principalComments: text("principal_comments"),
+  sentToCommitteeAt: timestamp("sent_to_committee_at"),
+  isConfidential: boolean("is_confidential").default(false),
+  printingReady: boolean("printing_ready").default(false),
+  paperFormat: text("paper_format").default("A4"),
+  generatedPaperUrl: text("generated_paper_url"),
+  answerKeyUrl: text("answer_key_url"),
 });
 
 export const insertTestSchema = createInsertSchema(tests, {
   type: z.enum(testTypes),
   questionIds: z.array(z.string()).nullable().optional(),
+  workflowState: z.enum(workflowStates).optional(),
 }).omit({ id: true });
 export type InsertTest = z.infer<typeof insertTestSchema>;
 export type Test = typeof tests.$inferSelect;
@@ -319,3 +350,81 @@ export function calculateExamDuration(totalMarks: number): number {
   if (totalMarks <= 80) return 180;
   return Math.ceil(totalMarks * 2.25);
 }
+
+// Blueprints for exam paper structure
+export const blueprints = pgTable("blueprints", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull(),
+  name: text("name").notNull(),
+  subject: text("subject").notNull(),
+  grade: text("grade").notNull(),
+  totalMarks: integer("total_marks").notNull(),
+  sections: jsonb("sections").$type<BlueprintSection[]>(),
+  createdBy: varchar("created_by"),
+  approvedBy: varchar("approved_by"),
+  isApproved: boolean("is_approved").default(false),
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
+
+export type BlueprintSection = {
+  name: string;
+  marks: number;
+  questionCount: number;
+  questionType: QuestionType;
+  difficulty?: DifficultyLevel;
+  chapters?: string[];
+  instructions?: string;
+};
+
+export const insertBlueprintSchema = createInsertSchema(blueprints).omit({ id: true });
+export type InsertBlueprint = z.infer<typeof insertBlueprintSchema>;
+export type Blueprint = typeof blueprints.$inferSelect;
+
+// Activity logs for audit trail
+export const activityLogs = pgTable("activity_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  userName: text("user_name"),
+  userRole: text("user_role"),
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: varchar("entity_id"),
+  details: jsonb("details").$type<Record<string, any>>(),
+  previousState: text("previous_state"),
+  newState: text("new_state"),
+  comments: text("comments"),
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
+
+export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({ id: true });
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type ActivityLog = typeof activityLogs.$inferSelect;
+
+// Question approval status for HOD review
+export const questionApprovalStatuses = ["pending", "approved", "rejected"] as const;
+export type QuestionApprovalStatus = typeof questionApprovalStatuses[number];
+
+// Question review table
+export const questionReviews = pgTable("question_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  questionId: varchar("question_id").notNull(),
+  reviewerId: varchar("reviewer_id").notNull(),
+  status: text("status").$type<QuestionApprovalStatus>().default("pending"),
+  comments: text("comments"),
+  reviewedAt: timestamp("reviewed_at").default(sql`now()`),
+});
+
+export const insertQuestionReviewSchema = createInsertSchema(questionReviews).omit({ id: true });
+export type InsertQuestionReview = z.infer<typeof insertQuestionReviewSchema>;
+export type QuestionReview = typeof questionReviews.$inferSelect;
+
+// All subjects list
+export const allSubjects = [
+  "Tamil", "English", "Hindi", "Sanskrit", "French",
+  "Mathematics", "Science", "Physics", "Chemistry", "Biology",
+  "Computer Science", "AI",
+  "Economics", "Commerce", "Business Studies", "History", "Geography", "Civics",
+  "EVS", "Social Science"
+] as const;
+export type Subject = typeof allSubjects[number];
