@@ -286,7 +286,7 @@ function TenantForm({ tenant, onSuccess }: { tenant?: Tenant; onSuccess: () => v
         <Input
           value={formData.code}
           onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-          placeholder="e.g., DEMO001"
+          placeholder="e.g., SCH001"
           required
           disabled={!!tenant}
           data-testid="input-tenant-code"

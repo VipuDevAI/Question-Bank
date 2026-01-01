@@ -160,16 +160,6 @@ export default function LoginPage() {
               </form>
             </Form>
 
-            <div className="mt-6 p-4 bg-accent rounded-lg">
-              <p className="text-sm text-accent-foreground font-medium mb-2">Demo Accounts:</p>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p><strong>School:</strong> DEMO001</p>
-                <p><strong>Teacher:</strong> teacher@demo.com / demo123</p>
-                <p><strong>Student:</strong> student@demo.com / demo123</p>
-                <p><strong>Parent:</strong> parent@demo.com / demo123</p>
-                <p><strong>Admin:</strong> admin@demo.com / demo123</p>
-              </div>
-            </div>
           </CardContent>
         </Card>
         </div>

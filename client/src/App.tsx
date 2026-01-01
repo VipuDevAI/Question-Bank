@@ -15,6 +15,20 @@ import ReportsPage from "@/pages/reports";
 import AnalyticsPage from "@/pages/analytics";
 import TenantsPage from "@/pages/admin/tenants";
 import UsersPage from "@/pages/admin/users";
+import ActivityLogsPage from "@/pages/activity-logs";
+import HODPaperGeneratorPage from "@/pages/hod/paper-generator";
+import PrincipalApprovalPage from "@/pages/principal/approval";
+import CommitteePanelPage from "@/pages/committee/panel";
+import RiskAlertsPage from "@/pages/principal/risk-alerts";
+import TestCreatePage from "@/pages/tests/create";
+import TestRevealPage from "@/pages/tests/reveal";
+import PortionsPage from "@/pages/portions";
+import MakeupTestsPage from "@/pages/makeup";
+import ManualMarkingPage from "@/pages/manual-marking";
+import ViewResultsPage from "@/pages/view-results";
+import ParentDashboard from "@/pages/parent/dashboard";
+import BlueprintsPage from "@/pages/blueprints";
+import BulkUploadPage from "@/pages/bulk-upload";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -70,6 +84,87 @@ function Router() {
       </Route>
       <Route path="/admin/users">
         <ProtectedRoute component={UsersPage} />
+      </Route>
+      <Route path="/activity-logs">
+        <ProtectedRoute component={ActivityLogsPage} />
+      </Route>
+      <Route path="/hod/generate-paper">
+        <ProtectedRoute component={HODPaperGeneratorPage} />
+      </Route>
+      <Route path="/hod/questions">
+        <ProtectedRoute component={HODPaperGeneratorPage} />
+      </Route>
+      <Route path="/hod/approve">
+        <ProtectedRoute component={HODPaperGeneratorPage} />
+      </Route>
+      <Route path="/hod/blueprints">
+        <ProtectedRoute component={HODPaperGeneratorPage} />
+      </Route>
+      <Route path="/hod/answer-key">
+        <ProtectedRoute component={HODPaperGeneratorPage} />
+      </Route>
+      <Route path="/hod/submit-principal">
+        <ProtectedRoute component={HODPaperGeneratorPage} />
+      </Route>
+      <Route path="/principal/pending">
+        <ProtectedRoute component={PrincipalApprovalPage} />
+      </Route>
+      <Route path="/principal/approve">
+        <ProtectedRoute component={PrincipalApprovalPage} />
+      </Route>
+      <Route path="/principal/send-committee">
+        <ProtectedRoute component={PrincipalApprovalPage} />
+      </Route>
+      <Route path="/principal/status">
+        <ProtectedRoute component={PrincipalApprovalPage} />
+      </Route>
+      <Route path="/principal/alerts">
+        <ProtectedRoute component={RiskAlertsPage} />
+      </Route>
+      <Route path="/principal/risk-alerts">
+        <ProtectedRoute component={RiskAlertsPage} />
+      </Route>
+      <Route path="/committee/papers">
+        <ProtectedRoute component={CommitteePanelPage} />
+      </Route>
+      <Route path="/committee/confidential">
+        <ProtectedRoute component={CommitteePanelPage} />
+      </Route>
+      <Route path="/committee/lock">
+        <ProtectedRoute component={CommitteePanelPage} />
+      </Route>
+      <Route path="/committee/printing">
+        <ProtectedRoute component={CommitteePanelPage} />
+      </Route>
+      <Route path="/committee/download">
+        <ProtectedRoute component={CommitteePanelPage} />
+      </Route>
+      <Route path="/tests/create">
+        <ProtectedRoute component={TestCreatePage} />
+      </Route>
+      <Route path="/tests/reveal">
+        <ProtectedRoute component={TestRevealPage} />
+      </Route>
+      <Route path="/portions">
+        <ProtectedRoute component={PortionsPage} />
+      </Route>
+      <Route path="/makeup">
+        <ProtectedRoute component={MakeupTestsPage} />
+      </Route>
+      <Route path="/manual-marking">
+        <ProtectedRoute component={ManualMarkingPage} />
+      </Route>
+      <Route path="/view-results">
+        <ProtectedRoute component={ViewResultsPage} />
+      </Route>
+      <Route path="/parent/dashboard">
+        <ProtectedRoute component={ParentDashboard} />
+      </Route>
+      <Route path="/blueprints">
+        <ProtectedRoute component={BlueprintsPage} />
+      </Route>
+      <Route path="/bulk-upload">
+        <ProtectedRoute component={BulkUploadPage} />
       </Route>
       <Route component={NotFound} />
     </Switch>

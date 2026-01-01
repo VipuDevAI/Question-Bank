@@ -26,6 +26,7 @@ import {
   XCircle, Eye, Send, BookOpen
 } from "lucide-react";
 import type { Question, Test } from "@shared/schema";
+import { MathText } from "./math-text";
 
 type QuestionStatus = "not_visited" | "answered" | "marked_review" | "unanswered";
 
@@ -97,6 +98,8 @@ export function ExamEngine({
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showTimeWarning, setShowTimeWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [showTabWarning, setShowTabWarning] = useState(false);
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasShownWarning = useRef(false);
 
@@ -190,6 +193,42 @@ export function ExamEngine({
   }, [answers, questionStatuses, markedForReview]);
 
   useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setTabSwitchCount(prev => {
+          const newCount = prev + 1;
+          setShowTabWarning(true);
+          
+          apiRequest("POST", "/api/exam/log-tab-switch", {
+            attemptId,
+            studentId: test.createdBy,
+            tenantId: test.tenantId,
+          }).catch(console.error);
+          
+          toast({
+            title: "Warning: Tab Switch Detected",
+            description: `You switched tabs. This has been logged. (${newCount} warning${newCount > 1 ? 's' : ''})`,
+            variant: "destructive",
+          });
+          
+          if (newCount >= 3) {
+            toast({
+              title: "Final Warning",
+              description: "Multiple tab switches detected. Your exam may be flagged for review.",
+              variant: "destructive",
+            });
+          }
+          
+          return newCount;
+        });
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [attemptId, test.createdBy, test.tenantId, toast]);
+
+  useEffect(() => {
     if (currentQuestion) {
       setQuestionStatuses(prev => ({
         ...prev,
@@ -269,7 +308,9 @@ export function ExamEngine({
         )}
 
         <div className="prose prose-sm max-w-none">
-          <p className="text-lg font-medium">{currentQuestion.content}</p>
+          <p className="text-lg font-medium">
+            <MathText text={currentQuestion.content} />
+          </p>
         </div>
 
         {renderAnswerInput()}
@@ -302,7 +343,7 @@ export function ExamEngine({
                 <RadioGroupItem value={option} id={`option-${idx}`} />
                 <Label htmlFor={`option-${idx}`} className="flex-1 cursor-pointer">
                   <span className="font-medium mr-2">{String.fromCharCode(65 + idx)}.</span>
-                  {option}
+                  <MathText text={option} />
                 </Label>
               </div>
             ))}
