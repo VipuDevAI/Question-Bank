@@ -105,6 +105,15 @@ Preferred communication style: Simple, everyday language.
 - **@replit/vite-plugin-runtime-error-modal**: Error overlay for development
 - **@replit/vite-plugin-cartographer**: Development tooling
 
+## Recent Changes (Jan 3, 2026)
+
+### Post-Exam Feedback System
+- **Exam Results Tabs**: After completing a mock test, students see 3 tabs: Score, Feedback, Review
+- **Strengths/Weaknesses Analysis**: Topics are analyzed by performance (70%+ = strength, below 70% = needs improvement)
+- **Practice Recommendations**: Buttons link directly to practice mode with subject/chapter/topic pre-filtered
+- **Question-by-Question Review**: Shows each question's status (correct/incorrect) with the student's answer vs correct answer
+- **Bulk Question Upload**: Teachers can upload questions via CSV with comprehensive validation (MCQ options, marks 1-100, required fields)
+
 ## Recent Changes (Jan 1, 2026)
 
 ### Wing-wise HOD Scoping & Teacher Management
