@@ -10,6 +10,20 @@ export const tenants = pgTable("tenants", {
   code: text("code").notNull().unique(),
   logo: text("logo"),
   active: boolean("active").default(true),
+  // Extended school details
+  principalName: text("principal_name"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  pincode: text("pincode"),
+  phone: text("phone"),
+  email: text("email"),
+  website: text("website"),
+  board: text("board"), // CBSE, ICSE, State Board, etc.
+  affiliationNumber: text("affiliation_number"),
+  establishedYear: text("established_year"),
+  studentCount: integer("student_count"),
+  teacherCount: integer("teacher_count"),
 });
 
 export const insertTenantSchema = createInsertSchema(tenants).omit({ id: true });

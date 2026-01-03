@@ -80,6 +80,24 @@ export async function registerRoutes(
     }
   });
 
+  // Admin schools endpoint (alias for tenants - used by super admin dashboard)
+  app.get("/api/admin/schools", async (req, res) => {
+    try {
+      const tenants = await storage.getAllTenants();
+      const schools = tenants.map(t => ({
+        name: t.name,
+        code: t.code,
+        principal: t.principalName || "",
+        board: t.board || "",
+        city: t.city || "",
+        status: t.active ? "Active" : "Inactive"
+      }));
+      res.json(schools);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // User routes
   app.get("/api/users", async (req, res) => {
     try {
