@@ -126,6 +126,9 @@ export default function TenantsPage() {
                   <TableRow>
                     <TableHead>School Name</TableHead>
                     <TableHead>Code</TableHead>
+                    <TableHead>Principal</TableHead>
+                    <TableHead>Board</TableHead>
+                    <TableHead>City</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -192,6 +195,15 @@ function TenantRow({ tenant }: { tenant: Tenant }) {
         </code>
       </TableCell>
       <TableCell>
+        <span className="text-sm">{tenant.principalName || "-"}</span>
+      </TableCell>
+      <TableCell>
+        <span className="text-sm">{tenant.board || "-"}</span>
+      </TableCell>
+      <TableCell>
+        <span className="text-sm">{tenant.city || "-"}</span>
+      </TableCell>
+      <TableCell>
         <div className="flex items-center gap-2">
           <Switch
             checked={tenant.active ?? true}
@@ -244,6 +256,19 @@ function TenantForm({ tenant, onSuccess }: { tenant?: Tenant; onSuccess: () => v
     name: tenant?.name || "",
     code: tenant?.code || "",
     logo: tenant?.logo || "",
+    principalName: tenant?.principalName || "",
+    address: tenant?.address || "",
+    city: tenant?.city || "",
+    state: tenant?.state || "",
+    pincode: tenant?.pincode || "",
+    phone: tenant?.phone || "",
+    email: tenant?.email || "",
+    website: tenant?.website || "",
+    board: tenant?.board || "",
+    affiliationNumber: tenant?.affiliationNumber || "",
+    establishedYear: tenant?.establishedYear || "",
+    studentCount: tenant?.studentCount || 0,
+    teacherCount: tenant?.teacherCount || 0,
   });
 
   const mutation = useMutation({
@@ -255,6 +280,7 @@ function TenantForm({ tenant, onSuccess }: { tenant?: Tenant; onSuccess: () => v
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/schools"] });
       toast({ title: tenant ? "School updated" : "School created" });
       onSuccess();
     },
@@ -269,41 +295,174 @@ function TenantForm({ tenant, onSuccess }: { tenant?: Tenant; onSuccess: () => v
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label>School Name</Label>
-        <Input
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          placeholder="Enter school name"
-          required
-          data-testid="input-tenant-name"
-        />
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2 col-span-2">
+          <Label>School Name *</Label>
+          <Input
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="Enter school name"
+            required
+            data-testid="input-tenant-name"
+          />
+        </div>
 
-      <div className="space-y-2">
-        <Label>School Code</Label>
-        <Input
-          value={formData.code}
-          onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-          placeholder="e.g., SCH001"
-          required
-          disabled={!!tenant}
-          data-testid="input-tenant-code"
-        />
-        <p className="text-xs text-muted-foreground">
-          Unique identifier for login (cannot be changed after creation)
-        </p>
-      </div>
+        <div className="space-y-2">
+          <Label>School Code *</Label>
+          <Input
+            value={formData.code}
+            onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+            placeholder="e.g., SCH001"
+            required
+            disabled={!!tenant}
+            data-testid="input-tenant-code"
+          />
+          <p className="text-xs text-muted-foreground">Unique login identifier</p>
+        </div>
 
-      <div className="space-y-2">
-        <Label>Logo URL (optional)</Label>
-        <Input
-          value={formData.logo}
-          onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
-          placeholder="https://..."
-          data-testid="input-tenant-logo"
-        />
+        <div className="space-y-2">
+          <Label>Board/Affiliation</Label>
+          <Input
+            value={formData.board}
+            onChange={(e) => setFormData({ ...formData, board: e.target.value })}
+            placeholder="CBSE, ICSE, State Board..."
+            data-testid="input-tenant-board"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Affiliation Number</Label>
+          <Input
+            value={formData.affiliationNumber}
+            onChange={(e) => setFormData({ ...formData, affiliationNumber: e.target.value })}
+            placeholder="Board affiliation number"
+            data-testid="input-tenant-affiliation"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Established Year</Label>
+          <Input
+            value={formData.establishedYear}
+            onChange={(e) => setFormData({ ...formData, establishedYear: e.target.value })}
+            placeholder="e.g., 1990"
+            data-testid="input-tenant-year"
+          />
+        </div>
+
+        <div className="space-y-2 col-span-2">
+          <Label>Principal Name</Label>
+          <Input
+            value={formData.principalName}
+            onChange={(e) => setFormData({ ...formData, principalName: e.target.value })}
+            placeholder="Principal's full name"
+            data-testid="input-tenant-principal"
+          />
+        </div>
+
+        <div className="space-y-2 col-span-2">
+          <Label>Address</Label>
+          <Input
+            value={formData.address}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            placeholder="Street address"
+            data-testid="input-tenant-address"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>City</Label>
+          <Input
+            value={formData.city}
+            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+            placeholder="City"
+            data-testid="input-tenant-city"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>State</Label>
+          <Input
+            value={formData.state}
+            onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+            placeholder="State"
+            data-testid="input-tenant-state"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Pincode</Label>
+          <Input
+            value={formData.pincode}
+            onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+            placeholder="Postal code"
+            data-testid="input-tenant-pincode"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Phone</Label>
+          <Input
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            placeholder="Contact number"
+            data-testid="input-tenant-phone"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Email</Label>
+          <Input
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder="School email"
+            type="email"
+            data-testid="input-tenant-email"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Website</Label>
+          <Input
+            value={formData.website}
+            onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+            placeholder="https://..."
+            data-testid="input-tenant-website"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Total Students</Label>
+          <Input
+            type="number"
+            value={formData.studentCount || ""}
+            onChange={(e) => setFormData({ ...formData, studentCount: parseInt(e.target.value) || 0 })}
+            placeholder="Number of students"
+            data-testid="input-tenant-students"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Total Teachers</Label>
+          <Input
+            type="number"
+            value={formData.teacherCount || ""}
+            onChange={(e) => setFormData({ ...formData, teacherCount: parseInt(e.target.value) || 0 })}
+            placeholder="Number of teachers"
+            data-testid="input-tenant-teachers"
+          />
+        </div>
+
+        <div className="space-y-2 col-span-2">
+          <Label>Logo URL (optional)</Label>
+          <Input
+            value={formData.logo}
+            onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
+            placeholder="https://..."
+            data-testid="input-tenant-logo"
+          />
+        </div>
       </div>
 
       <CoinButton
