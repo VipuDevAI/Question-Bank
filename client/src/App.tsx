@@ -29,6 +29,7 @@ import ViewResultsPage from "@/pages/view-results";
 import ParentDashboard from "@/pages/parent/dashboard";
 import BlueprintsPage from "@/pages/blueprints";
 import BulkUploadPage from "@/pages/bulk-upload";
+import QuestionsUploadPage from "@/pages/questions-upload";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -59,7 +60,7 @@ function Router() {
         <ProtectedRoute component={QuestionsPage} />
       </Route>
       <Route path="/questions/upload">
-        <ProtectedRoute component={QuestionsPage} />
+        <ProtectedRoute component={QuestionsUploadPage} />
       </Route>
       <Route path="/chapters">
         <ProtectedRoute component={ChaptersPage} />

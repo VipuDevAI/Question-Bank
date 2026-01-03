@@ -44,6 +44,19 @@ interface ExamResultsData {
   correctCount: number;
   incorrectCount: number;
   unansweredCount: number;
+  answers?: Record<string, string>;
+}
+
+interface QuestionAnalysis {
+  id: string;
+  content: string;
+  topic: string;
+  chapter: string;
+  isCorrect: boolean;
+  userAnswer: string;
+  correctAnswer: string;
+  difficulty: string;
+  bloomLevel: string;
 }
 
 export default function MockPage() {
@@ -60,6 +73,7 @@ export default function MockPage() {
     timeRemaining?: number;
   }>({});
   const [results, setResults] = useState<ExamResultsData | null>(null);
+  const [questionAnalysis, setQuestionAnalysis] = useState<QuestionAnalysis[]>([]);
 
   const { data: availableTests = [], isLoading } = useQuery<Test[]>({
     queryKey: ["/api/mock/available"],
@@ -98,7 +112,33 @@ export default function MockPage() {
 
   const handleExamComplete = (examResults: ExamResultsData) => {
     setResults(examResults);
+    
+    const analysis: QuestionAnalysis[] = questions.map(q => {
+      const userAnswer = examResults.answers?.[q.id] || "";
+      const correctAnswer = q.correctAnswer || "";
+      const isCorrect = userAnswer.toLowerCase().trim() === correctAnswer.toLowerCase().trim();
+      return {
+        id: q.id,
+        content: q.content,
+        topic: q.topic || "",
+        chapter: q.chapter || "",
+        isCorrect,
+        userAnswer,
+        correctAnswer,
+        difficulty: q.difficulty || "medium",
+        bloomLevel: q.bloomLevel || "",
+      };
+    });
+    setQuestionAnalysis(analysis);
     setState("complete");
+  };
+
+  const handlePractice = (chapter?: string, topic?: string) => {
+    const params = new URLSearchParams();
+    if (selectedTest?.subject) params.set("subject", selectedTest.subject);
+    if (chapter) params.set("chapter", chapter);
+    if (topic) params.set("topic", topic);
+    navigate(`/practice?${params.toString()}`);
   };
 
   const handleExitExam = () => {
@@ -153,8 +193,10 @@ export default function MockPage() {
         unansweredCount={results.unansweredCount}
         totalQuestions={questions.length}
         attemptId={attemptId}
+        questionAnalysis={questionAnalysis}
         onBack={handleExitExam}
         onDownloadPdf={handleDownloadPdf}
+        onPractice={handlePractice}
       />
     );
   }

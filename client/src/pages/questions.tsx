@@ -76,7 +76,7 @@ export default function QuestionsPage() {
     return matchesSearch && matchesSubject && matchesType;
   });
 
-  const subjects = [...new Set(questions.map((q) => q.subject))];
+  const subjects = Array.from(new Set(questions.map((q) => q.subject)));
 
   return (
     <PageLayout>

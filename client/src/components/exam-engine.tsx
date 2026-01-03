@@ -53,6 +53,7 @@ interface ExamResults {
   correctCount: number;
   incorrectCount: number;
   unansweredCount: number;
+  answers?: Record<string, string>;
 }
 
 const STATUS_COLORS = {
@@ -141,7 +142,7 @@ export function ExamEngine({
     },
     onSuccess: (data: ExamResults) => {
       setIsSubmitting(false);
-      onComplete(data);
+      onComplete({ ...data, answers });
     },
     onError: (error: any) => {
       setIsSubmitting(false);
