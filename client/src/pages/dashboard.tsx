@@ -1518,47 +1518,6 @@ function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Add/Edit School</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>School Name</Label>
-                  <Input placeholder="Enter school name" data-testid="input-school-name" />
-                </div>
-                <div className="space-y-2">
-                  <Label>School Code</Label>
-                  <Input placeholder="e.g., ABC01" data-testid="input-school-code" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Board</Label>
-                  <Select>
-                    <SelectTrigger data-testid="select-school-board"><SelectValue placeholder="Select board" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cbse">CBSE</SelectItem>
-                      <SelectItem value="icse">ICSE</SelectItem>
-                      <SelectItem value="state">State Board</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Principal Name</Label>
-                  <Input placeholder="Principal name" data-testid="input-principal-name" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Principal Email</Label>
-                  <Input type="email" placeholder="email@school.com" data-testid="input-principal-email" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Contact Number</Label>
-                  <Input placeholder="+91 9876543210" data-testid="input-contact-number" />
-                </div>
-              </div>
-              <CoinButton color="blue" data-testid="button-save-school">Save School</CoinButton>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="users">
