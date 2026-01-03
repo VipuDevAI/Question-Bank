@@ -237,121 +237,45 @@ export class MemStorage implements IStorage {
   }
 
   private seedData() {
-    const demoTenant: Tenant = {
-      id: "tenant-demo",
-      name: "Demo School",
-      code: "DEMO001",
-      logo: null,
+    // Create Super Admin account only - no demo data
+    const superAdmin: User = {
+      id: "user-superadmin",
+      tenantId: null,
+      email: "superadmin@safal.com",
+      password: "SuperAdmin@123",
+      name: "Super Admin",
+      role: "super_admin",
+      grade: null,
+      avatar: null,
+      parentOf: null,
       active: true,
+      assignedQuestions: {},
+      sessionToken: null,
     };
-    this.tenants.set(demoTenant.id, demoTenant);
-
-    const demoUsers: User[] = [
-      { id: "user-teacher", tenantId: "tenant-demo", email: "teacher@demo.com", password: "demo123", name: "John Teacher", role: "teacher", grade: null, avatar: null, parentOf: null, active: true, assignedQuestions: {}, sessionToken: null },
-      { id: "user-hod", tenantId: "tenant-demo", email: "hod@demo.com", password: "demo123", name: "Sarah HOD", role: "hod", grade: null, avatar: null, parentOf: null, active: true, assignedQuestions: {}, sessionToken: null },
-      { id: "user-principal", tenantId: "tenant-demo", email: "principal@demo.com", password: "demo123", name: "Dr. Principal", role: "principal", grade: null, avatar: null, parentOf: null, active: true, assignedQuestions: {}, sessionToken: null },
-      { id: "user-committee", tenantId: "tenant-demo", email: "committee@demo.com", password: "demo123", name: "Exam Committee", role: "exam_committee", grade: null, avatar: null, parentOf: null, active: true, assignedQuestions: {}, sessionToken: null },
-      { id: "user-student", tenantId: "tenant-demo", email: "student@demo.com", password: "demo123", name: "Jane Student", role: "student", grade: "10", avatar: null, parentOf: null, active: true, assignedQuestions: {}, sessionToken: null },
-      { id: "user-parent", tenantId: "tenant-demo", email: "parent@demo.com", password: "demo123", name: "Parent Smith", role: "parent", grade: null, avatar: null, parentOf: "user-student", active: true, assignedQuestions: {}, sessionToken: null },
-      { id: "user-admin", tenantId: "tenant-demo", email: "admin@demo.com", password: "demo123", name: "Admin User", role: "admin", grade: null, avatar: null, parentOf: null, active: true, assignedQuestions: {}, sessionToken: null },
-    ];
-    demoUsers.forEach(u => this.users.set(u.id, u));
-
-    const demoChapters: Chapter[] = [
-      { id: "chapter-1", tenantId: "tenant-demo", name: "Linear Equations", subject: "Mathematics", grade: "10", orderIndex: 1, status: "unlocked", unlockDate: null, deadline: null, scoresRevealed: false },
-      { id: "chapter-2", tenantId: "tenant-demo", name: "Quadratic Equations", subject: "Mathematics", grade: "10", orderIndex: 2, status: "locked", unlockDate: null, deadline: null, scoresRevealed: false },
-      { id: "chapter-3", tenantId: "tenant-demo", name: "Trigonometry", subject: "Mathematics", grade: "10", orderIndex: 3, status: "draft", unlockDate: null, deadline: null, scoresRevealed: false },
-      { id: "chapter-4", tenantId: "tenant-demo", name: "Cell Biology", subject: "Science", grade: "10", orderIndex: 1, status: "completed", unlockDate: null, deadline: null, scoresRevealed: true },
-      { id: "chapter-5", tenantId: "tenant-demo", name: "Genetics", subject: "Science", grade: "10", orderIndex: 2, status: "unlocked", unlockDate: null, deadline: null, scoresRevealed: false },
-    ];
-    demoChapters.forEach(c => this.chapters.set(c.id, c));
-
-    const demoQuestions: Question[] = [
-      { id: "q1", tenantId: "tenant-demo", content: "Solve: 2x + 5 = 15", type: "numerical", options: null, optionImages: null, correctAnswer: "5", explanation: "2x = 15 - 5 = 10, so x = 5", hint: "Subtract 5 from both sides first", imageUrl: null, passageId: null, instructionText: null, subject: "Mathematics", chapter: "Linear Equations", topic: "Basic Equations", grade: "10", difficulty: "easy", bloomLevel: "apply", marks: 2, isVerified: true, isPractice: true, isAssessment: true, createdBy: "user-teacher", uploadId: null, status: "approved" },
-      { id: "q2", tenantId: "tenant-demo", content: "What is the value of x in 3x - 7 = 14?", type: "mcq", options: ["5", "6", "7", "8"], optionImages: null, correctAnswer: "7", explanation: "3x = 21, x = 7", hint: "Add 7 to both sides", imageUrl: null, passageId: null, instructionText: null, subject: "Mathematics", chapter: "Linear Equations", topic: "Basic Equations", grade: "10", difficulty: "easy", bloomLevel: "understand", marks: 1, isVerified: true, isPractice: true, isAssessment: true, createdBy: "user-teacher", uploadId: null, status: "approved" },
-      { id: "q3", tenantId: "tenant-demo", content: "Is 0 a solution to 5x = 0?", type: "true_false", options: null, optionImages: null, correctAnswer: "True", explanation: "5 * 0 = 0, so yes", hint: null, imageUrl: null, passageId: null, instructionText: null, subject: "Mathematics", chapter: "Linear Equations", topic: "Basic Equations", grade: "10", difficulty: "easy", bloomLevel: "remember", marks: 1, isVerified: true, isPractice: true, isAssessment: true, createdBy: "user-teacher", uploadId: null, status: "approved" },
-      { id: "q4", tenantId: "tenant-demo", content: "What is the quadratic formula?", type: "short_answer", options: null, optionImages: null, correctAnswer: "x = (-b +/- sqrt(b^2-4ac)) / 2a", explanation: "This is the standard quadratic formula", hint: "It involves a, b, c coefficients", imageUrl: null, passageId: null, instructionText: null, subject: "Mathematics", chapter: "Quadratic Equations", topic: "Formulas", grade: "10", difficulty: "medium", bloomLevel: "remember", marks: 2, isVerified: true, isPractice: true, isAssessment: true, createdBy: "user-teacher", uploadId: null, status: "approved" },
-      { id: "q5", tenantId: "tenant-demo", content: "What is the powerhouse of the cell?", type: "mcq", options: ["Nucleus", "Mitochondria", "Ribosome", "Golgi Body"], optionImages: null, correctAnswer: "Mitochondria", explanation: "Mitochondria produces ATP which is energy", hint: "Think about energy production", imageUrl: null, passageId: null, instructionText: null, subject: "Science", chapter: "Cell Biology", topic: "Organelles", grade: "10", difficulty: "easy", bloomLevel: "remember", marks: 1, isVerified: true, isPractice: true, isAssessment: true, createdBy: "user-teacher", uploadId: null, status: "approved" },
-    ];
-    demoQuestions.forEach(q => this.questions.set(q.id, q));
-
-    const demoTests: Test[] = [
-      { id: "test-1", tenantId: "tenant-demo", title: "Linear Equations Unit Test", type: "unit_test", subject: "Mathematics", grade: "10", section: null, chapterId: "chapter-1", duration: 30, totalMarks: 20, questionCount: 3, questionIds: ["q1", "q2", "q3"], isActive: true, resultsRevealed: false, createdBy: "user-teacher", blueprintId: null, workflowState: "draft", hodApprovedBy: null, hodApprovedAt: null, hodComments: null, principalApprovedBy: null, principalApprovedAt: null, principalComments: null, sentToCommitteeAt: null, isConfidential: false, printingReady: false, paperFormat: "A4", generatedPaperUrl: null, answerKeyUrl: null },
-      { id: "mock-1", tenantId: "tenant-demo", title: "Mathematics Mock Test 1", type: "mock", subject: "Mathematics", grade: "10", section: null, chapterId: null, duration: 90, totalMarks: 40, questionCount: 4, questionIds: ["q1", "q2", "q3", "q4"], isActive: true, resultsRevealed: false, createdBy: "user-teacher", blueprintId: null, workflowState: "draft", hodApprovedBy: null, hodApprovedAt: null, hodComments: null, principalApprovedBy: null, principalApprovedAt: null, principalComments: null, sentToCommitteeAt: null, isConfidential: false, printingReady: false, paperFormat: "A4", generatedPaperUrl: null, answerKeyUrl: null },
-      { id: "mock-2", tenantId: "tenant-demo", title: "Science Mock Test 1", type: "mock", subject: "Science", grade: "10", section: null, chapterId: null, duration: 45, totalMarks: 30, questionCount: 1, questionIds: ["q5"], isActive: true, resultsRevealed: false, createdBy: "user-teacher", blueprintId: null, workflowState: "draft", hodApprovedBy: null, hodApprovedAt: null, hodComments: null, principalApprovedBy: null, principalApprovedAt: null, principalComments: null, sentToCommitteeAt: null, isConfidential: false, printingReady: false, paperFormat: "A4", generatedPaperUrl: null, answerKeyUrl: null },
-    ];
-    demoTests.forEach(t => this.tests.set(t.id, t));
-
-    // Default config
-    const defaultConfigs: ExamConfig[] = [
-      { id: "cfg-1", tenantId: "tenant-demo", key: "ExamActive", value: "true" },
-      { id: "cfg-2", tenantId: "tenant-demo", key: "QuestionsPerSubject", value: "50" },
-      { id: "cfg-3", tenantId: "tenant-demo", key: "TimeFor40Marks", value: "90" },
-      { id: "cfg-4", tenantId: "tenant-demo", key: "TimeFor80Marks", value: "180" },
-    ];
-    defaultConfigs.forEach(c => this.config.set(c.id, c));
-
-    // Demo Blueprints
-    const demoBlueprints: Blueprint[] = [
-      { id: "bp-1", tenantId: "tenant-demo", name: "Unit Test Blueprint - 40 Marks", subject: "Mathematics", grade: "10", totalMarks: 40, sections: [
-        { name: "Section A - MCQ", questionType: "mcq", questionCount: 10, marks: 10 },
-        { name: "Section B - Short Answer", questionType: "short_answer", questionCount: 5, marks: 10 },
-        { name: "Section C - Numerical", questionType: "numerical", questionCount: 5, marks: 20 }
-      ], createdBy: "user-hod", isApproved: true, approvedBy: "user-principal", createdAt: new Date() },
-      { id: "bp-2", tenantId: "tenant-demo", name: "Half Yearly Blueprint - 80 Marks", subject: "Mathematics", grade: "10", totalMarks: 80, sections: [
-        { name: "Section A - MCQ", questionType: "mcq", questionCount: 20, marks: 20 },
-        { name: "Section B - Short Answer", questionType: "short_answer", questionCount: 10, marks: 20 },
-        { name: "Section C - Long Answer", questionType: "long_answer", questionCount: 5, marks: 40 }
-      ], createdBy: "user-hod", isApproved: false, approvedBy: null, createdAt: null },
-      { id: "bp-3", tenantId: "tenant-demo", name: "Science Unit Test - 40 Marks", subject: "Science", grade: "10", totalMarks: 40, sections: [
-        { name: "Section A - MCQ", questionType: "mcq", questionCount: 15, marks: 15 },
-        { name: "Section B - True/False", questionType: "true_false", questionCount: 5, marks: 5 },
-        { name: "Section C - Short Answer", questionType: "short_answer", questionCount: 5, marks: 20 }
-      ], createdBy: "user-hod", isApproved: true, approvedBy: "user-principal", createdAt: new Date() },
-    ];
-    demoBlueprints.forEach(bp => this.blueprints.set(bp.id, bp));
-
-    // Demo Makeup Tests
-    const demoMakeupTests = [
-      { id: "makeup-1", tenantId: "tenant-demo", testId: "test-1", testName: "Linear Equations Unit Test", studentId: "user-student", studentName: "Jane Student", reason: "Medical absence", scheduledDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), status: "scheduled", createdBy: "user-teacher", createdAt: new Date() },
-      { id: "makeup-2", tenantId: "tenant-demo", testId: "mock-1", testName: "Mathematics Mock Test 1", studentId: "student-2", studentName: "Mike Johnson", reason: "Family emergency", scheduledDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), status: "pending", createdBy: "user-teacher", createdAt: new Date() },
-    ];
-    demoMakeupTests.forEach(mt => this.makeupTests.set(mt.id, mt));
-
-    // Demo Risk Alerts
-    const demoRiskAlerts = [
-      { id: "alert-1", tenantId: "tenant-demo", type: "low_performance", severity: "high", title: "Low Performance Alert", description: "Student Jane Student scored below 40% in Mathematics Mock Test", studentId: "user-student", studentName: "Jane Student", subject: "Mathematics", testId: "mock-1", createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), status: "active", acknowledgedBy: null, acknowledgedAt: null },
-      { id: "alert-2", tenantId: "tenant-demo", type: "absent", severity: "medium", title: "Multiple Absences", description: "Student has missed 3 consecutive tests", studentId: "student-3", studentName: "Tom Wilson", subject: "Science", testId: null, createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), status: "active", acknowledgedBy: null, acknowledgedAt: null },
-      { id: "alert-3", tenantId: "tenant-demo", type: "declining_trend", severity: "medium", title: "Declining Performance Trend", description: "Performance dropped by 20% over last 3 tests", studentId: "student-4", studentName: "Sarah Brown", subject: "English", testId: null, createdAt: new Date(), status: "active", acknowledgedBy: null, acknowledgedAt: null },
-    ];
-    demoRiskAlerts.forEach(ra => this.riskAlerts.set(ra.id, ra));
-
-    // Demo Notifications for Parents
-    const demoNotifications = [
-      { id: "notif-1", parentId: "user-parent", type: "result", title: "New Test Result Available", message: "Jane Student scored 85% in Linear Equations Unit Test", createdAt: new Date(), read: false },
-      { id: "notif-2", parentId: "user-parent", type: "alert", title: "Upcoming Test Reminder", message: "Mathematics Mock Test scheduled for next week", createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), read: false },
-      { id: "notif-3", parentId: "user-parent", type: "progress", title: "Chapter Completed", message: "Jane Student has completed Cell Biology chapter", createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), read: true },
-    ];
-    demoNotifications.forEach(n => this.notifications.set(n.id, n));
-
-    // Demo Attempts for results/submissions
-    const demoAttempts = [
-      { id: "attempt-1", tenantId: "tenant-demo", testId: "test-1", studentId: "user-student", assignedQuestionIds: ["q1", "q2", "q3"], answers: { q1: "5", q2: "7", q3: "True" }, score: 18, totalMarks: 20, status: "submitted" as const, startedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 25 * 60 * 1000), timeRemaining: 300, markedForReview: null, questionStatuses: null, manualScores: null },
-      { id: "attempt-2", tenantId: "tenant-demo", testId: "mock-1", studentId: "user-student", assignedQuestionIds: ["q1", "q2", "q3", "q4"], answers: { q1: "5", q2: "6", q3: "False", q4: "quadratic formula" }, score: 32, totalMarks: 40, status: "marked" as const, startedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 80 * 60 * 1000), timeRemaining: 0, markedForReview: null, questionStatuses: null, manualScores: { q4: 2 } },
-    ];
-    demoAttempts.forEach(a => this.attempts.set(a.id, a as any));
-
-    // Demo Activity Logs
-    const demoLogs = [
-      { id: "log-1", tenantId: "tenant-demo", userId: "user-teacher", userName: "John Teacher", userRole: "teacher", action: "question_created", entityType: "question", entityId: "q1", details: null, previousState: null, newState: "draft", comments: "Created new question for Linear Equations", createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-      { id: "log-2", tenantId: "tenant-demo", userId: "user-hod", userName: "Sarah HOD", userRole: "hod", action: "question_approved", entityType: "question", entityId: "q1", details: null, previousState: "pending", newState: "approved", comments: "Question reviewed and approved", createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000) },
-      { id: "log-3", tenantId: "tenant-demo", userId: "user-teacher", userName: "John Teacher", userRole: "teacher", action: "test_created", entityType: "test", entityId: "test-1", details: null, previousState: null, newState: "draft", comments: "Created unit test", createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) },
-      { id: "log-4", tenantId: "tenant-demo", userId: "user-principal", userName: "Dr. Principal", userRole: "principal", action: "test_approved", entityType: "test", entityId: "test-1", details: null, previousState: "pending_principal", newState: "approved", comments: "Test approved for examination", createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000) },
-    ];
-    demoLogs.forEach(l => this.activityLogs.set(l.id, l as any));
+    this.users.set(superAdmin.id, superAdmin);
   }
 
   async authenticateUser(email: string, password: string, schoolCode: string): Promise<{ user: AuthUser; token: string } | null> {
+    // Super Admin login - no school code required
+    if (schoolCode === "SUPERADMIN" || schoolCode === "") {
+      const superAdmin = Array.from(this.users.values()).find(
+        u => u.email === email && u.password === password && u.role === "super_admin"
+      );
+      if (superAdmin) {
+        const authUser: AuthUser = {
+          id: superAdmin.id,
+          tenantId: superAdmin.tenantId,
+          email: superAdmin.email,
+          name: superAdmin.name,
+          role: superAdmin.role,
+          grade: superAdmin.grade || undefined,
+          avatar: superAdmin.avatar,
+        };
+        return { user: authUser, token: `token-${superAdmin.id}-${Date.now()}` };
+      }
+    }
+
+    // Regular user login - requires school code
     const tenant = await this.getTenantByCode(schoolCode);
     if (!tenant) return null;
 
